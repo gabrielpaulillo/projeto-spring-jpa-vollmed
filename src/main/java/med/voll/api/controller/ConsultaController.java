@@ -2,7 +2,7 @@ package med.voll.api.controller;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import med.voll.api.domain.consulta.AgendaDeConsulta;
+import med.voll.api.domain.consulta.AgendaDeConsultas;
 import med.voll.api.domain.consulta.DadosAgendamentoConsulta;
 import med.voll.api.domain.consulta.DadosCancelamentoConsulta;
 import med.voll.api.domain.consulta.DadosDetalhamentoConsulta;
@@ -17,7 +17,7 @@ public class ConsultaController {
 
 //  @Autowired injeta a classe "AgendaDeConsulta" no Controller
     @Autowired
-    private AgendaDeConsulta agenda;
+    private AgendaDeConsultas agenda;
 
     @PostMapping
     @Transactional

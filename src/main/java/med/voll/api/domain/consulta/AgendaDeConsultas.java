@@ -1,21 +1,20 @@
 package med.voll.api.domain.consulta;
 
-import jdk.jfr.Experimental;
 import med.voll.api.domain.ValidacaoException;
+import med.voll.api.domain.consulta.validacoes.agendamento.ValidadorAgendamentoDeConsulta;
+import med.voll.api.domain.consulta.validacoes.cancelamento.ValidadorCancelamentoDeConsulta;
 import med.voll.api.domain.medico.Medico;
 import med.voll.api.domain.medico.MedicoRepository;
 import med.voll.api.domain.paciente.PacienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-// Representa um serviço da aplicação (agendamento de consultas)
-@Service
-public class AgendaDeConsulta {
-//    Essa classe detém as regras de negócio
-//    O objetivo é salvar o agendamento no banco de dados: recebemos a requisição com os dados de agendamento e precisamos salvá-los na tabela de consultas
-//    Por isso, precisamos acessar o banco de dados e a tabela de consultas nesta classe. Assim, declararemos um atributo ConsultaRepository
+import java.util.List;
 
-    @Autowired // para injetar o repositório em nossa classe
+@Service
+public class AgendaDeConsultas {
+
+    @Autowired
     private ConsultaRepository consultaRepository;
 
     @Autowired
@@ -24,7 +23,13 @@ public class AgendaDeConsulta {
     @Autowired
     private PacienteRepository pacienteRepository;
 
-    public void agendar(DadosAgendamentoConsulta dados) {
+    @Autowired
+    private List<ValidadorAgendamentoDeConsulta> validadores;
+
+    @Autowired
+    private List<ValidadorCancelamentoDeConsulta> validadoresCancelamento;
+
+    public DadosDetalhamentoConsulta agendar(DadosAgendamentoConsulta dados) {
         if (!pacienteRepository.existsById(dados.idPaciente())) {
             throw new ValidacaoException("Id do paciente informado não existe!");
         }
@@ -33,12 +38,31 @@ public class AgendaDeConsulta {
             throw new ValidacaoException("Id do médico informado não existe!");
         }
 
+        validadores.forEach(v -> v.validar(dados));
+
+        var paciente = pacienteRepository.getReferenceById(dados.idPaciente());
         var medico = escolherMedico(dados);
-        var paciente = pacienteRepository.findById(dados.idPaciente()).get(); // Na requisição só vem o ID, mas precisamos carregar o objeto inteiro. Assim, usamos o Repository para carregar pelo ID do banco de dados.
-//        Aparecerá um erro de compilação porque o método findById() não devolve a entidade, mas um Optional. Assim, no fim da linha, antes do ponto e vírgula, precisamos escrever .get() ao lado de findById(). Isso faz com que ele pegue a entidade carregada.
+        if (medico == null) {
+            throw new ValidacaoException("Não existe médico disponível nessa data!");
+        }
+
         var consulta = new Consulta(null, medico, paciente, dados.data(), null);
         consultaRepository.save(consulta);
+
+        return new DadosDetalhamentoConsulta(consulta);
     }
+
+    public void cancelar(DadosCancelamentoConsulta dados) {
+        if (!consultaRepository.existsById(dados.idConsulta())) {
+            throw new ValidacaoException("Id da consulta informado não existe!");
+        }
+
+        validadoresCancelamento.forEach(v -> v.validar(dados));
+
+        var consulta = consultaRepository.getReferenceById(dados.idConsulta());
+        consulta.cancelar(dados.motivo());
+    }
+
 
     private Medico escolherMedico(DadosAgendamentoConsulta dados) {
         if (dados.idMedico() != null) {
@@ -52,12 +76,4 @@ public class AgendaDeConsulta {
         return medicoRepository.escolherMedicoAleatorioLivreNaData(dados.especialidade(), dados.data());
     }
 
-    public void cancelar(DadosCancelamentoConsulta dados) {
-        if (!consultaRepository.existsById(dados.idConsulta())) {
-            throw new ValidacaoException("Id da consulta informado não existe!");
-        }
-
-        var consulta = consultaRepository.getReferenceById(dados.idConsulta());
-        consulta.cancelar(dados.motivo());
-    }
 }

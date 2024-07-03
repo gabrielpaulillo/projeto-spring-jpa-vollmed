@@ -47,7 +47,7 @@ public class PacienteController {
     @Transactional
     public ResponseEntity remover(@PathVariable Long id) {
         var paciente = repository.getReferenceById(id);
-        paciente.inativar();
+        paciente.excluir();
 
         return ResponseEntity.noContent().build();
     }

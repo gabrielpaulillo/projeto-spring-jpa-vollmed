@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Entity(name = "Consulta")
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor // gera um construtor com todos os atributos
+@AllArgsConstructor
 @EqualsAndHashCode(of = "id")
 public class Consulta {
 
@@ -39,4 +39,5 @@ public class Consulta {
     public void cancelar(MotivoCancelamento motivo) {
         this.motivoCancelamento = motivo;
     }
+
 }
